@@ -40,6 +40,7 @@ impl Arguments {
     pub fn parse(wanted: Vec<String>) -> Vec<Argument> {
         let args: Vec<String> = env::args().collect();
         let mut options : Vec<Argument> = Vec::new();
+        let mut found = 0;
 
         for arg in args {
             options.push(Argument::new(arg, "val".to_string()));

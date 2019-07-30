@@ -8,7 +8,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use arguments::*;
+use generators::*;
 mod arguments;
+mod generators;
 
 fn generate_insert(nb_queries: usize, nb_values: usize, table: String) -> Vec<String> {
     let mut queries : Vec<String> = Vec::new();
@@ -49,6 +51,16 @@ fn get_path() -> String {
     }
 }
 
+fn save_queries(filename: &str, queries: &Vec<String>) -> std::io::Result<()> {
+    let mut file = File::create(filename.to_string())?;
+
+    for query in queries {
+        file.write(query.as_bytes())?;
+    }
+
+    Ok(())
+}
+
 fn main() -> std::io::Result<()> {
     let mut wanted : Vec<String> = Vec::new();
     wanted.push(String::from("-queries"));
@@ -57,30 +69,40 @@ fn main() -> std::io::Result<()> {
 
     let options = Arguments::new(Arguments::parse(wanted));
 
-    let nb_queries = 100;
-    let nb_values = 600;
+    let nb_queries = 1000;
+    let nb_values = 5000;
     let table = "usr_user".to_string();
+    let output = format!("{}/sql/insert_{}_rows.sql", get_path(), nb_queries * nb_values);
 
+    let config = Config {
+        nb_queries: nb_queries,
+        nb_rows: nb_values,
+        table_name: table,
+        file_name: "".to_string(),
+        data_pattern: "(({).*?(}))".to_string(),
+        random: 0,
+        verbose: 1,
+    };
+
+    let data = Data {
+        key : "title".to_string(),
+        value: "Let's Rock".to_string(),
+    };
+
+    let generator = Generator::new(config, data);
     let timer = SystemTime::now();
-    let queries = generate_insert(nb_queries, nb_values, table);
-
-    let filename = format!("{}/sql/insert_{}_rows.sql", get_path(), nb_queries * nb_values);
-    let mut file = File::create(filename.to_string())?;
-
-    for query in queries {
-        file.write(query.as_bytes())?;
-    }
+    let queries = generator.insert();
 
     let difference = timer.duration_since(timer)
                           .expect("SystemTime::duration_since failed");
 
     println!("Generated in {:?}", timer);
 
+    save_queries(&output, &queries)
+
+
     // for opt in options.storage {
     //     println!("{} => {}", opt.name, opt.value);
     // }
 
-    println!("{:?}", get_path());
-
-    Ok(())
 }
